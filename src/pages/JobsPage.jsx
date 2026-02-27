@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { DUMMY_JOBS } from "../data/index.js";
+import { captureLead } from "../lib/supabase.js";
 
-export default function JobsPage({ user, openLogin, openSignup, showToast }) {
+export default function JobsPage({ user, openLogin, openSignup, showToast, isVerifiedUser }) {
   const [showPostJob, setShowPostJob] = useState(false);
   const [consentChecked, setConsentChecked] = useState(false);
-  const isVerifiedUser = user?.role === "verified_sub" || user?.role === "verified_gc" || user?.role === "superadmin";
 
   return (
     <div className="page">
@@ -30,7 +30,18 @@ export default function JobsPage({ user, openLogin, openSignup, showToast }) {
           Check the box below and verified contractors actively hiring in your trade will be able to reach out to you directly. We match you to relevant opportunities — you won't get spammed, and you can opt out any time.
         </p>
         <label className="consent-checkbox-row">
-          <input type="checkbox" checked={consentChecked} onChange={e => setConsentChecked(e.target.checked)} />
+          <input type="checkbox" checked={consentChecked} onChange={async e => {
+            setConsentChecked(e.target.checked);
+            if (e.target.checked && user) {
+              await captureLead({
+                email: user.email || "",
+                name: user.name,
+                type: "job_seeker",
+                consent_given: true,
+                source_page: "jobs",
+              });
+            }
+          }} />
           <span>
             <strong>Yes, connect me with verified hiring contractors.</strong> I agree to allow TradeFeed to share my profile and contact information with verified GCs and subcontractors who are actively looking to hire for roles matching my trade and location. I understand this is opt-in and I can withdraw consent at any time by updating my profile settings. TradeFeed will never sell my information to third parties or recruiters outside the platform.
           </span>

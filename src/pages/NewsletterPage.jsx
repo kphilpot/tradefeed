@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { DUMMY_NEWSLETTERS } from "../data/index.js";
+import NewsletterSignup from "../components/NewsletterSignup.jsx";
 
-export default function NewsletterPage() {
+export default function NewsletterPage({ showToast }) {
   const [expanded, setExpanded] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const filtered = DUMMY_NEWSLETTERS.filter(nl =>
@@ -54,6 +55,8 @@ export default function NewsletterPage() {
       {filtered.length === 0 && (
         <div style={{ textAlign: "center", color: "#aaa", padding: "40px 0", fontSize: 14 }}>No issues found for "{searchQuery}"</div>
       )}
+
+      <NewsletterSignup showToast={showToast} />
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { DUMMY_VERIFIED_CONTRACTORS, NC_LOCATIONS, TRADES_LIST } from "../data/index.js";
+import { captureLead } from "../lib/supabase.js";
 
 export default function DirectoryPage({ user, onSelectContractor, showToast }) {
   const [locationFilter, setLocationFilter] = useState("All Locations");
@@ -24,9 +25,17 @@ export default function DirectoryPage({ user, onSelectContractor, showToast }) {
   const visibleContractors = dirUnlocked || user ? filtered : filtered.slice(0, FREE_VISIBLE);
   const hiddenCount = filtered.length - FREE_VISIBLE;
 
-  function handleUnlock(e) {
+  async function handleUnlock(e) {
     e.preventDefault();
     if (!unlockEmail || !unlockName) return;
+    // Write lead to Supabase (no-op if not connected)
+    await captureLead({
+      email: unlockEmail,
+      name: unlockName,
+      type: "directory_unlock",
+      consent_given: consentChecked,
+      source_page: "directory",
+    });
     setDirUnlocked(true);
     showToast("Directory unlocked! ✓");
   }

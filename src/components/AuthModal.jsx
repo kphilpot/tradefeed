@@ -1,8 +1,31 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 
+// AuthModal calls onLogin(email, password) and onSignup({ email, password, name, role, avatarColor })
+// Both are async and handled by useAuth in App.jsx.
 export default function AuthModal({ mode, setMode, onLogin, onSignup, onClose }) {
   const [tier, setTier] = useState("free");
-  const formRef = useRef(null);
+  const [loading, setLoading] = useState(false);
+  const [fieldError, setFieldError] = useState("");
+
+  async function handleLoginSubmit(e) {
+    e.preventDefault();
+    setFieldError("");
+    setLoading(true);
+    await onLogin(e.target.email.value, e.target.password.value);
+    setLoading(false);
+  }
+
+  async function handleSignupSubmit(e) {
+    e.preventDefault();
+    setFieldError("");
+    const name = e.target.name.value.trim();
+    const email = e.target.email.value.trim();
+    const password = e.target.password.value;
+    if (password.length < 8) { setFieldError("Password must be at least 8 characters."); return; }
+    setLoading(true);
+    await onSignup({ email, password, name, role: tier, avatarColor: "#0057FF" });
+    setLoading(false);
+  }
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -13,7 +36,7 @@ export default function AuthModal({ mode, setMode, onLogin, onSignup, onClose })
           <>
             <h2>Welcome back</h2>
             <p className="modal-sub">Log in to access TradeFeed</p>
-            <form onSubmit={onLogin}>
+            <form onSubmit={handleLoginSubmit}>
               <div className="form-group">
                 <label className="form-label">Email</label>
                 <input name="email" className="form-input" type="email" placeholder="you@example.com" required />
@@ -22,7 +45,10 @@ export default function AuthModal({ mode, setMode, onLogin, onSignup, onClose })
                 <label className="form-label">Password</label>
                 <input name="password" className="form-input" type="password" placeholder="••••••••" required />
               </div>
-              <button type="submit" className="btn-primary">Log In</button>
+              {fieldError && <p style={{ color: "#E74C3C", fontSize: 12, marginBottom: 10 }}>{fieldError}</p>}
+              <button type="submit" className="btn-primary" disabled={loading}>
+                {loading ? "Logging in…" : "Log In"}
+              </button>
             </form>
             <div className="form-toggle">New here? <a onClick={() => setMode("signup")}>Create account</a></div>
           </>
@@ -67,7 +93,7 @@ export default function AuthModal({ mode, setMode, onLogin, onSignup, onClose })
               </div>
             )}
 
-            <form ref={formRef} onSubmit={(e) => { e.preventDefault(); e.target.setAttribute("data-tier", tier); onSignup(e); }}>
+            <form onSubmit={handleSignupSubmit}>
               <div className="form-group" style={{ marginTop: 14 }}>
                 <label className="form-label">Full Name</label>
                 <input name="name" className="form-input" type="text" placeholder="John Smith" required />
@@ -90,8 +116,9 @@ export default function AuthModal({ mode, setMode, onLogin, onSignup, onClose })
                 </label>
               </div>
 
-              <button type="submit" className="btn-primary">
-                {tier === "free" ? "Create Free Account" : tier === "verified_gc" ? "Apply as Verified GC" : "Apply as Verified Subcontractor"}
+              {fieldError && <p style={{ color: "#E74C3C", fontSize: 12, marginBottom: 10 }}>{fieldError}</p>}
+              <button type="submit" className="btn-primary" disabled={loading}>
+                {loading ? "Creating account…" : tier === "free" ? "Create Free Account" : tier === "verified_gc" ? "Apply as Verified GC" : "Apply as Verified Subcontractor"}
               </button>
             </form>
             <div className="form-toggle">Already a member? <a onClick={() => setMode("login")}>Log in</a></div>
