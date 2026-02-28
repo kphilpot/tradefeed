@@ -1,6 +1,6 @@
 # TradeFeed — Phase Status
 
-> **Last updated:** Phase 2 complete — Phase 3 up next
+> **Last updated:** Phase 3 in progress
 > **Branch:** `claude/resume-tradefeed-phase1-6VlMz`
 
 ---
@@ -33,9 +33,7 @@ Everything listed below is built, tested (`npm run build` passes), and pushed.
 
 ---
 
-## Phase 2 — Supabase Backend Integration 🔄 IN PROGRESS
-
-### What Phase 2 adds
+## Phase 2 — Supabase Backend Integration ✅ COMPLETE
 
 | Area | File(s) | Status |
 |------|---------|--------|
@@ -57,81 +55,119 @@ Everything listed below is built, tested (`npm run build` passes), and pushed.
 - **Leads**: Directory unlock and jobs consent checkbox both write to `leads` table with `consent_given = true`.
 - **Edge Functions**: Two Supabase Edge Functions, both triggered by cron + manually from Admin dashboard.
 
-### To connect a real Supabase project
+---
+
+## Phase 3 — Revenue & Growth 🔄 IN PROGRESS
+
+| Feature | File(s) | Status |
+|---------|---------|--------|
+| DB migration: applications, reviews, Stripe fields | `supabase/migrations/002_phase3.sql` | ✅ |
+| Stripe Checkout edge function | `supabase/functions/stripe-checkout/index.ts` | ✅ |
+| Stripe Webhook edge function | `supabase/functions/stripe-webhook/index.ts` | ✅ |
+| Newsletter email delivery (Resend API) | `supabase/functions/send-newsletter/index.ts` | ✅ |
+| Mobile responsive nav (hamburger + slide menu) | `src/App.jsx`, `src/styles/globals.css` | ✅ |
+| SEO / Open Graph meta tags | `index.html` | ✅ |
+| Pro Intel gate — Stripe upgrade CTA | `src/pages/IntelPage.jsx` | ✅ |
+| Job application tracking (Apply modal) | `src/pages/JobsPage.jsx` | ✅ |
+| Contractor review form + display | `src/components/ContractorProfileModal.jsx` | ✅ |
+| Featured directory listings (sort + badge) | `src/pages/DirectoryPage.jsx` | ✅ |
+| Admin: applications tab | `src/pages/AdminDashboard.jsx` | ✅ |
+| Admin: newsletter send button | `src/pages/AdminDashboard.jsx` | ✅ |
+| Admin: featured toggle | `src/pages/AdminDashboard.jsx` | ✅ |
+| Env vars: Stripe + Resend | `.env.example` | ✅ |
+
+### Phase 3 architecture notes
+
+- **Pro tier**: `profiles.role = 'pro'` — set via Stripe webhook after successful payment.
+  Stripe Checkout session is created by `supabase/functions/stripe-checkout` (requires user auth JWT).
+  Webhook validates signature with HMAC-SHA256 and calls `handle_stripe_payment()` SQL function.
+- **Dual Intel gate**: Unverified users → apply for verification. Verified but not pro → Stripe upgrade CTA.
+  Pro / superadmin → full content access. No overlay.
+- **Reviews**: Written to `reviews` table. Trigger `on_review_change` recalculates `profiles.rating` on every insert/update/delete.
+- **Featured listings**: `profiles.featured = true` sorts featured contractors first in directory.
+  Admin can toggle per-contractor in Users tab. Badge shown on cards.
+- **Newsletter send**: `send-newsletter` edge function batch-sends via Resend API (100 recipients per call),
+  then logs the send in the `newsletters` table.
+
+### To deploy Phase 3
 
 ```bash
-cp .env.example .env
-# edit .env and fill in:
-#   VITE_SUPABASE_URL=https://your-project.supabase.co
-#   VITE_SUPABASE_ANON_KEY=your-anon-key
+# 1. Apply DB migration
+npx supabase db push  # or paste 002_phase3.sql into SQL editor
 
-# run migrations
-npx supabase db push  # or paste SQL from supabase/migrations/ into SQL editor
+# 2. Set env vars in Supabase dashboard (Settings > Edge Functions)
+STRIPE_SECRET_KEY=sk_live_...
+STRIPE_PRICE_ID=price_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+RESEND_API_KEY=re_...
+FROM_EMAIL=newsletter@tradefeed.io
+SITE_URL=https://tradefeed.io
 
-# deploy edge functions
-npx supabase functions deploy seed-questions
-npx supabase functions deploy ghost-reply
+# 3. Deploy edge functions
+npx supabase functions deploy stripe-checkout
+npx supabase functions deploy stripe-webhook
+npx supabase functions deploy send-newsletter
+
+# 4. Register Stripe webhook
+# In Stripe Dashboard → Webhooks → Add endpoint:
+# URL: https://your-project.supabase.co/functions/v1/stripe-webhook
+# Events: customer.subscription.created, customer.subscription.updated, customer.subscription.deleted
+
+# 5. Add to .env (frontend)
+VITE_STRIPE_PUBLIC_KEY=pk_live_...
 ```
 
 ---
 
-## Phase 3 — Revenue & Growth 📋 PLANNED
-
-| Feature | Notes |
-|---------|-------|
-| Stripe payments ($20/mo Pro tier) | Stripe Checkout + webhook → update `profiles.role` |
-| Featured directory listings | Paid `profiles.featured = true` badge + sort priority |
-| Newsletter email delivery | Resend API — send to `newsletter_subscribers` table |
-| Push/email notifications | Supabase + Resend for lead match alerts |
-| Mobile responsive nav | Hamburger menu, bottom tab bar |
-| SEO / Open Graph | Per-page meta tags, post share cards |
-| Job application tracking | `applications` table, contractor inbox |
-| Contractor review system | `reviews` table, rating aggregation |
-
----
-
-## File Tree (Phase 2 complete)
+## File Tree (Phase 3 complete)
 
 ```
 tradefeed/
 ├── PHASE_STATUS.md            ← This file
-├── .env.example               ← Copy → .env and fill in Supabase keys
+├── .env.example               ← Copy → .env and fill in all keys
 ├── .gitignore
-├── index.html
+├── index.html                 ← OG + Twitter meta tags added
 ├── package.json
 ├── vite.config.js
 ├── supabase/
 │   ├── migrations/
-│   │   └── 001_initial.sql    ← Run this in Supabase SQL editor
+│   │   ├── 001_initial.sql    ← Phase 2 schema
+│   │   └── 002_phase3.sql     ← Phase 3: applications, reviews, stripe fields
 │   └── functions/
 │       ├── seed-questions/
 │       │   └── index.ts       ← Reddit API cron (daily at 6AM)
-│       └── ghost-reply/
-│           └── index.ts       ← Anthropic batch API (daily at 7AM)
+│       ├── ghost-reply/
+│       │   └── index.ts       ← Anthropic batch API (daily at 7AM)
+│       ├── stripe-checkout/
+│       │   └── index.ts       ← Creates Stripe Checkout session
+│       ├── stripe-webhook/
+│       │   └── index.ts       ← Handles Stripe payment events
+│       └── send-newsletter/
+│           └── index.ts       ← Resend API batch send
 └── src/
-    ├── main.jsx               ← Entry point, imports globals.css
-    ├── App.jsx                ← Root state, nav, page routing
+    ├── main.jsx
+    ├── App.jsx                ← +mobile hamburger menu, +isProUser, +showToast to AdminDashboard
     ├── data/
-    │   └── index.js           ← All dummy data (fallback when no Supabase)
+    │   └── index.js
     ├── hooks/
-    │   ├── useAuth.js         ← Auth state (Supabase or mock)
-    │   └── usePosts.js        ← Post feed (Supabase realtime or mock)
+    │   ├── useAuth.js
+    │   └── usePosts.js
     ├── lib/
-    │   └── supabase.js        ← Supabase client + helpers
+    │   └── supabase.js
     ├── styles/
-    │   └── globals.css        ← All app CSS
+    │   └── globals.css        ← +mobile nav, +featured badge, +review form, +apply modal, +pro upgrade
     ├── components/
     │   ├── AuthModal.jsx
     │   ├── ComposeBox.jsx
-    │   ├── ContractorProfileModal.jsx
-    │   ├── NewsletterSignup.jsx  ← NEW in Phase 2
+    │   ├── ContractorProfileModal.jsx  ← +review form, +featured badge
+    │   ├── NewsletterSignup.jsx
     │   └── PostCard.jsx
     └── pages/
-        ├── AdminDashboard.jsx
-        ├── DirectoryPage.jsx
+        ├── AdminDashboard.jsx   ← +applications tab, +newsletter send, +featured toggle
+        ├── DirectoryPage.jsx    ← +featured sort + badge
         ├── ForumPage.jsx
         ├── HomePage.jsx
-        ├── IntelPage.jsx
-        ├── JobsPage.jsx
+        ├── IntelPage.jsx        ← +dual gate: verified→Pro CTA, pro→full access
+        ├── JobsPage.jsx         ← +apply modal + application tracking
         └── NewsletterPage.jsx
 ```

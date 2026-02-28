@@ -1,21 +1,88 @@
 import { useState } from "react";
 import { ADMIN_STATS, DUMMY_SEEDED_QUESTIONS, DUMMY_NEWSLETTERS, GHOST_ACCOUNTS } from "../data/index.js";
+import { isSupabaseConnected, supabase } from "../lib/supabase.js";
 
-export default function AdminDashboard({ onBack, onLogout, posts }) {
+const DUMMY_APPLICATIONS = [
+  { id: 1, job: "Lead Electrician — Charlotte Commercial", applicant: "Mike Torres", email: "mtorres@email.com", message: "10 years commercial electrical, licensed in NC and SC.", time: "2h ago", status: "new" },
+  { id: 2, job: "Framing Foreman — Raleigh Residential", applicant: "Jake Martinez", email: "jake@example.com", message: "I've run framing crews for 8 years, mainly residential.", time: "5h ago", status: "reviewed" },
+  { id: 3, job: "Estimator — Durham GC", applicant: "Sara Nguyen", email: "sara.n@gmail.com", message: "Background in takeoffs and bid writing for mid-size GC.", time: "Yesterday", status: "new" },
+  { id: 4, job: "Plumbing Sub — Wilmington New Build", applicant: "Derek Hall", email: "derek.hall@plumbing.com", message: "Licensed master plumber, available immediately.", time: "Yesterday", status: "accepted" },
+];
+
+export default function AdminDashboard({ onBack, onLogout, posts, showToast }) {
   const [tab, setTab] = useState("overview");
   const [pendingUsers, setPendingUsers] = useState(ADMIN_STATS.recentSignups.filter(u => u.status === "pending"));
   const [seededQuestions, setSeededQuestions] = useState(DUMMY_SEEDED_QUESTIONS);
   const [ghostRunning, setGhostRunning] = useState(false);
   const [ghostLastRun, setGhostLastRun] = useState(ADMIN_STATS.ghostLastRun);
+  const [applications, setApplications] = useState(DUMMY_APPLICATIONS);
+  const [featuredUsers, setFeaturedUsers] = useState(new Set());
+  const [nlSubject, setNlSubject] = useState("");
+  const [nlBody, setNlBody] = useState("");
+  const [nlSending, setNlSending] = useState(false);
 
   function approveUser(name) { setPendingUsers(prev => prev.filter(u => u.name !== name)); }
   function markUsed(id) { setSeededQuestions(prev => prev.map(q => q.id === id ? { ...q, used: true } : q)); }
+
   function runGhostAccounts() {
     setGhostRunning(true);
     setTimeout(() => { setGhostRunning(false); setGhostLastRun("Just now"); }, 2200);
   }
 
+  function toggleFeatured(name) {
+    setFeaturedUsers(prev => {
+      const next = new Set(prev);
+      next.has(name) ? next.delete(name) : next.add(name);
+      return next;
+    });
+    const action = featuredUsers.has(name) ? "removed from" : "added to";
+    if (showToast) showToast(`${name} ${action} featured listings ✓`);
+    // In production: supabase.from("profiles").update({ featured: !prev }).eq("name", name)
+  }
+
+  function updateAppStatus(id, status) {
+    setApplications(prev => prev.map(a => a.id === id ? { ...a, status } : a));
+  }
+
+  async function sendNewsletter() {
+    if (!nlSubject.trim() || !nlBody.trim()) {
+      if (showToast) showToast("Subject and body are required.");
+      return;
+    }
+    setNlSending(true);
+    try {
+      if (isSupabaseConnected) {
+        const { data: { session } } = await supabase.auth.getSession();
+        const res = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-newsletter`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${session?.access_token}`,
+            },
+            body: JSON.stringify({ subject: nlSubject, html_body: nlBody }),
+          }
+        );
+        const data = await res.json();
+        if (showToast) showToast(`Newsletter sent to ${data.sent} subscribers ✓`);
+      } else {
+        // Demo mode
+        setTimeout(() => {
+          if (showToast) showToast(`Demo: newsletter sent to ${ADMIN_STATS.newsletterSubscribers} subscribers ✓`);
+        }, 800);
+      }
+      setNlSubject("");
+      setNlBody("");
+    } catch (err) {
+      if (showToast) showToast("Send failed: " + err.message);
+    } finally {
+      setNlSending(false);
+    }
+  }
+
   const maxViews = Math.max(...ADMIN_STATS.weeklyEngagement.map(d => d.views));
+  const statusColor = { new: "status-pending", reviewed: "status-approved", accepted: "status-approved", rejected: "status-pending" };
 
   return (
     <div className="admin-page">
@@ -30,9 +97,9 @@ export default function AdminDashboard({ onBack, onLogout, posts }) {
         </div>
       </div>
 
-      <div style={{ background: "#141414", borderBottom: "1px solid #222", padding: "0 28px" }}>
-        {["overview", "seed", "ghosts", "users", "leads", "newsletter", "revenue"].map(t => (
-          <button key={t} onClick={() => setTab(t)} style={{ background: "none", border: "none", color: tab === t ? "#FFD600" : "#555", fontFamily: "var(--font-body)", fontSize: 13, fontWeight: tab === t ? 700 : 400, padding: "14px 16px", cursor: "pointer", borderBottom: tab === t ? "2px solid #FFD600" : "2px solid transparent", textTransform: "capitalize" }}>
+      <div style={{ background: "#141414", borderBottom: "1px solid #222", padding: "0 28px", overflowX: "auto" }}>
+        {["overview", "seed", "ghosts", "users", "leads", "newsletter", "applications", "revenue"].map(t => (
+          <button key={t} onClick={() => setTab(t)} style={{ background: "none", border: "none", color: tab === t ? "#FFD600" : "#555", fontFamily: "var(--font-body)", fontSize: 13, fontWeight: tab === t ? 700 : 400, padding: "14px 16px", cursor: "pointer", borderBottom: tab === t ? "2px solid #FFD600" : "2px solid transparent", textTransform: "capitalize", whiteSpace: "nowrap" }}>
             {t === "seed" ? "Post Ideas" : t === "ghosts" ? "Ghost Accounts" : t}
           </button>
         ))}
@@ -85,9 +152,9 @@ export default function AdminDashboard({ onBack, onLogout, posts }) {
                 <div className="admin-stat-sub">{ADMIN_STATS.newsletterSubscribers} subs</div>
               </div>
               <div className="admin-stat-card">
-                <div className="admin-stat-label">Active Jobs</div>
-                <div className="admin-stat-value">{ADMIN_STATS.jobPostings}</div>
-                <div className="admin-stat-sub">{ADMIN_STATS.jobApplications} applications</div>
+                <div className="admin-stat-label">Job Applications</div>
+                <div className="admin-stat-value">{applications.length}</div>
+                <div className="admin-stat-sub">{applications.filter(a => a.status === "new").length} new</div>
               </div>
             </div>
 
@@ -138,9 +205,7 @@ export default function AdminDashboard({ onBack, onLogout, posts }) {
                 <div style={{ background: "#1a1a1a", border: "1px solid #2a2a2a", borderRadius: 10, padding: "10px 16px", fontSize: 12, color: "#555", marginBottom: 8, fontFamily: "monospace" }}>
                   GET reddit.com/r/Construction+Homebuilding/hot.json?limit=20
                 </div>
-                <button className="admin-publish-btn">
-                  🔄 Refresh Ideas Now
-                </button>
+                <button className="admin-publish-btn">🔄 Refresh Ideas Now</button>
               </div>
             </div>
 
@@ -236,13 +301,28 @@ export default function AdminDashboard({ onBack, onLogout, posts }) {
         {tab === "users" && (
           <div className="admin-card">
             <div className="admin-section-title">User Management</div>
-            <div className="admin-tr admin-tr-head">
-              <span>Name</span><span>Role</span><span>Status</span><span>Action</span>
+            <div className="admin-tr admin-tr-head" style={{ gridTemplateColumns: "1fr 80px 80px 90px 70px" }}>
+              <span>Name</span><span>Role</span><span>Featured</span><span>Status</span><span>Action</span>
             </div>
             {ADMIN_STATS.recentSignups.map(u => (
-              <div key={u.name} className="admin-tr">
+              <div key={u.name} className="admin-tr" style={{ gridTemplateColumns: "1fr 80px 80px 90px 70px" }}>
                 <span style={{ color: "#ccc" }}>{u.name}</span>
                 <span style={{ color: "#777", fontSize: 12 }}>{u.role}</span>
+                <button
+                  onClick={() => toggleFeatured(u.name)}
+                  style={{
+                    background: featuredUsers.has(u.name) ? "rgba(255,214,0,0.15)" : "none",
+                    border: `1px solid ${featuredUsers.has(u.name) ? "var(--yellow)" : "#333"}`,
+                    borderRadius: 6,
+                    color: featuredUsers.has(u.name) ? "var(--yellow)" : "#555",
+                    fontSize: 11,
+                    padding: "3px 8px",
+                    cursor: "pointer",
+                    fontFamily: "var(--font-body)",
+                  }}
+                >
+                  {featuredUsers.has(u.name) ? "⭐ Featured" : "Feature"}
+                </button>
                 <span className={`status-badge ${u.status === "pending" ? "status-pending" : "status-approved"}`}>{u.status}</span>
                 <button className="admin-approve-btn">View</button>
               </div>
@@ -310,6 +390,34 @@ export default function AdminDashboard({ onBack, onLogout, posts }) {
                 ))}
               </div>
             </div>
+
+            {/* Compose + Send */}
+            <div className="nl-compose">
+              <div className="nl-compose-title">Compose & Send Newsletter</div>
+              <input
+                className="form-input"
+                style={{ background: "#1a1a1a", border: "1px solid #333", color: "white", marginBottom: 10 }}
+                placeholder="Subject line..."
+                value={nlSubject}
+                onChange={e => setNlSubject(e.target.value)}
+              />
+              <textarea
+                className="form-input"
+                style={{ background: "#1a1a1a", border: "1px solid #333", color: "white", minHeight: 120, resize: "vertical", marginBottom: 12 }}
+                placeholder="Newsletter body (HTML supported)..."
+                value={nlBody}
+                onChange={e => setNlBody(e.target.value)}
+              />
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14 }}>
+                <div style={{ fontSize: 12, color: "#555" }}>
+                  Sends via Resend API to all {ADMIN_STATS.newsletterSubscribers} active subscribers.
+                </div>
+                <button className="nl-send-btn" onClick={sendNewsletter} disabled={nlSending}>
+                  {nlSending ? "Sending..." : `Send to ${ADMIN_STATS.newsletterSubscribers} subscribers →`}
+                </button>
+              </div>
+            </div>
+
             <div className="admin-card">
               <div className="admin-section-title">Published Issues</div>
               {DUMMY_NEWSLETTERS.map(nl => (
@@ -325,6 +433,54 @@ export default function AdminDashboard({ onBack, onLogout, posts }) {
           </div>
         )}
 
+        {/* ─── APPLICATIONS ─── */}
+        {tab === "applications" && (
+          <>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+              <div>
+                <div className="admin-section-title">Job Applications</div>
+                <p style={{ fontSize: 13, color: "#555", marginTop: -8 }}>
+                  {applications.filter(a => a.status === "new").length} new · {applications.length} total
+                </p>
+              </div>
+            </div>
+
+            <div className="admin-stats-grid" style={{ marginBottom: 20 }}>
+              {[
+                { label: "Total Applications", val: applications.length, sub: "All time" },
+                { label: "New / Unreviewed", val: applications.filter(a => a.status === "new").length, sub: "Needs action" },
+                { label: "Accepted", val: applications.filter(a => a.status === "accepted").length, sub: "Moved forward" },
+                { label: "Active Job Posts", val: ADMIN_STATS.jobPostings, sub: "Open positions" },
+              ].map(s => (
+                <div key={s.label} className="admin-stat-card">
+                  <div className="admin-stat-label">{s.label}</div>
+                  <div className="admin-stat-value">{s.val}</div>
+                  <div className="admin-stat-sub">{s.sub}</div>
+                </div>
+              ))}
+            </div>
+
+            {applications.map(app => (
+              <div key={app.id} className="app-card">
+                <div className="app-card-body">
+                  <div className="app-job-title">{app.job}</div>
+                  <div className="app-applicant">{app.applicant} · {app.email} · {app.time}</div>
+                  {app.message && <div className="app-message">"{app.message}"</div>}
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0 }}>
+                  <span className={`status-badge ${statusColor[app.status]}`}>{app.status}</span>
+                  {app.status === "new" && (
+                    <button className="app-status-btn" onClick={() => updateAppStatus(app.id, "reviewed")}>Mark Reviewed</button>
+                  )}
+                  {app.status === "reviewed" && (
+                    <button className="app-status-btn" style={{ borderColor: "var(--teal)", color: "var(--teal)" }} onClick={() => updateAppStatus(app.id, "accepted")}>Accept ✓</button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </>
+        )}
+
         {/* ─── REVENUE ─── */}
         {tab === "revenue" && (
           <div>
@@ -332,7 +488,7 @@ export default function AdminDashboard({ onBack, onLogout, posts }) {
               {[
                 { label: "MRR", val: `$${ADMIN_STATS.mrr.toLocaleString()}`, sub: ADMIN_STATS.mrrGrowth + " MoM", highlight: true },
                 { label: "ARR (projected)", val: `$${(ADMIN_STATS.mrr * 12).toLocaleString()}`, sub: "Based on current MRR" },
-                { label: "Paid Members", val: ADMIN_STATS.paidMembers, sub: "@ $20/mo" },
+                { label: "Paid Members", val: ADMIN_STATS.paidMembers, sub: "@ $20/mo via Stripe" },
                 { label: "Churn Rate", val: ADMIN_STATS.churnRate, sub: "Monthly" },
               ].map(m => (
                 <div key={m.label} className={`admin-stat-card ${m.highlight ? "highlight" : ""}`}>
@@ -345,9 +501,9 @@ export default function AdminDashboard({ onBack, onLogout, posts }) {
             <div className="admin-card">
               <div className="admin-section-title">Revenue Breakdown</div>
               {[
-                { source: "Paid Memberships ($20/mo)", amount: `$${ADMIN_STATS.mrr.toLocaleString()}`, pct: "100%" },
+                { source: "Paid Memberships ($20/mo via Stripe)", amount: `$${ADMIN_STATS.mrr.toLocaleString()}`, pct: "100%" },
+                { source: "Featured Directory Listings", amount: "$0", pct: "—" },
                 { source: "Lead Sales to Contractors (coming soon)", amount: "$0", pct: "—" },
-                { source: "Featured Directory Listings (coming soon)", amount: "$0", pct: "—" },
                 { source: "Sponsored Intel Posts (coming soon)", amount: "$0", pct: "—" },
               ].map(r => (
                 <div key={r.source} style={{ display: "flex", justifyContent: "space-between", padding: "12px 0", borderBottom: "1px solid #1f1f1f", fontSize: 13, color: "#ccc", alignItems: "center" }}>
@@ -361,6 +517,7 @@ export default function AdminDashboard({ onBack, onLogout, posts }) {
             </div>
           </div>
         )}
+
       </div>
     </div>
   );

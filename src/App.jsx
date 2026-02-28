@@ -18,9 +18,13 @@ export default function App() {
   const [modalMode, setModalMode] = useState("login");
   const [toast, setToast] = useState(null);
   const [selectedContractor, setSelectedContractor] = useState(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const { user, login, signup, logout, isVerifiedUser, isSuperAdmin } = useAuth();
   const { posts, addPost, toggleLike, toggleRepost } = usePosts();
+
+  // Pro = paid subscriber OR superadmin gets full access
+  const isProUser = user?.role === "pro" || isSuperAdmin;
 
   function showToast(msg) { setToast(msg); setTimeout(() => setToast(null), 3200); }
   function openLogin()  { setModalMode("login");  setShowModal(true); }
@@ -30,7 +34,7 @@ export default function App() {
     const { error } = await login(email, password);
     if (error) { showToast("Login failed: " + error.message); return; }
     setShowModal(false);
-    showToast("Welcome back! 👋");
+    showToast("Welcome back!");
   }
 
   async function handleSignup({ email, password, name, role, avatarColor }) {
@@ -38,8 +42,8 @@ export default function App() {
     if (error) { showToast("Signup failed: " + error.message); return; }
     setShowModal(false);
     showToast(pendingVerification
-      ? "Application submitted! We'll verify within 24h. ✅"
-      : "Welcome to TradeFeed! 🎉"
+      ? "Application submitted! We'll verify within 24h."
+      : "Welcome to TradeFeed!"
     );
   }
 
@@ -63,12 +67,27 @@ export default function App() {
   function handleRepost(postId) {
     if (!user) { openLogin(); return; }
     toggleRepost(postId);
-    showToast("Reposted ↗️");
+    showToast("Reposted");
+  }
+
+  function navigateTo(p) {
+    setPage(p);
+    setMobileMenuOpen(false);
   }
 
   if (page === "admin" && isSuperAdmin) {
-    return <AdminDashboard onBack={() => setPage("home")} onLogout={handleLogout} posts={posts} />;
+    return (
+      <AdminDashboard
+        onBack={() => setPage("home")}
+        onLogout={handleLogout}
+        posts={posts}
+        showToast={showToast}
+      />
+    );
   }
+
+  const NAV_PAGES = ["home", "newsletter", "jobs", "directory", "forum", "intel"];
+  const navLabel = (p) => p === "home" ? "Feed" : p === "intel" ? "🔒 Intel" : p.charAt(0).toUpperCase() + p.slice(1);
 
   return (
     <>
@@ -82,17 +101,20 @@ export default function App() {
 
       {/* NAV */}
       <nav className="nav">
-        <div className="nav-logo" onClick={() => setPage("home")}>Trade<span>Feed</span></div>
+        <div className="nav-logo" onClick={() => navigateTo("home")}>Trade<span>Feed</span></div>
+
+        {/* Desktop links */}
         <div className="nav-links">
-          {["home", "newsletter", "jobs", "directory", "forum", "intel"].map(p => (
-            <button key={p} className={`nav-link ${page === p ? "active" : ""}`} onClick={() => setPage(p)}>
-              {p === "home" ? "Feed" : p === "intel" ? "🔒 Intel" : p.charAt(0).toUpperCase() + p.slice(1)}
+          {NAV_PAGES.map(p => (
+            <button key={p} className={`nav-link ${page === p ? "active" : ""}`} onClick={() => navigateTo(p)}>
+              {navLabel(p)}
             </button>
           ))}
           {isSuperAdmin && (
-            <button className="nav-link" onClick={() => setPage("admin")} style={{ color: "#FFD600" }}>⚙ Admin</button>
+            <button className="nav-link" onClick={() => navigateTo("admin")} style={{ color: "#FFD600" }}>⚙ Admin</button>
           )}
         </div>
+
         <div className="nav-right">
           {user ? (
             <>
@@ -100,6 +122,7 @@ export default function App() {
                 {user.verified && <span style={{ color: "var(--verified)" }}>✓</span>}
                 {user.name}
                 {isSuperAdmin && <span className="admin-badge">ADMIN</span>}
+                {isProUser && !isSuperAdmin && <span className="admin-badge" style={{ background: "var(--yellow)", color: "var(--dark)" }}>PRO</span>}
               </span>
               <button className="nav-ghost" onClick={handleLogout}>Log Out</button>
             </>
@@ -109,8 +132,67 @@ export default function App() {
               <button className="nav-cta" onClick={openSignup}>Join Free</button>
             </>
           )}
+          {/* Mobile hamburger */}
+          <button className="nav-hamburger" onClick={() => setMobileMenuOpen(true)} aria-label="Open menu">
+            <span /><span /><span />
+          </button>
         </div>
       </nav>
+
+      {/* MOBILE MENU */}
+      {mobileMenuOpen && (
+        <div className="mobile-menu">
+          <div className="mobile-menu-header">
+            <div className="mobile-menu-logo">Trade<span>Feed</span></div>
+            <button className="mobile-menu-close" onClick={() => setMobileMenuOpen(false)}>✕</button>
+          </div>
+          <div className="mobile-menu-links">
+            {NAV_PAGES.map(p => (
+              <button
+                key={p}
+                className={`mobile-nav-link ${page === p ? "active" : ""}`}
+                onClick={() => navigateTo(p)}
+              >
+                {navLabel(p)}
+              </button>
+            ))}
+            {isSuperAdmin && (
+              <button
+                className="mobile-nav-link"
+                style={{ color: "var(--yellow)" }}
+                onClick={() => navigateTo("admin")}
+              >
+                ⚙ Admin
+              </button>
+            )}
+          </div>
+          <div className="mobile-menu-footer">
+            {user ? (
+              <>
+                <div className="mobile-menu-user">
+                  {user.verified && <span style={{ color: "var(--verified)", marginRight: 4 }}>✓</span>}
+                  {user.name}
+                  {isProUser && !isSuperAdmin && <span style={{ color: "var(--yellow)", marginLeft: 6, fontSize: 11, fontWeight: 700 }}>PRO</span>}
+                </div>
+                <button className="btn-primary" onClick={() => { handleLogout(); setMobileMenuOpen(false); }}>
+                  Log Out
+                </button>
+              </>
+            ) : (
+              <>
+                <button className="nav-ghost" style={{ width: "100%", padding: "12px", textAlign: "center" }}
+                  onClick={() => { openLogin(); setMobileMenuOpen(false); }}>
+                  Log In
+                </button>
+                <button className="nav-cta" style={{ width: "100%", padding: "12px", borderRadius: 10 }}
+                  onClick={() => { openSignup(); setMobileMenuOpen(false); }}>
+                  Join Free
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* PAGE CONTENT */}
       <div className="page-enter" key={page}>
@@ -133,7 +215,7 @@ export default function App() {
           <ForumPage user={user} isVerifiedUser={isVerifiedUser} openSignup={openSignup} showToast={showToast} posts={posts} onLike={handleLike} />
         )}
         {page === "intel" && (
-          <IntelPage isVerifiedUser={isVerifiedUser} openSignup={openSignup} />
+          <IntelPage isVerifiedUser={isVerifiedUser} isProUser={isProUser} openSignup={openSignup} showToast={showToast} />
         )}
       </div>
 
@@ -150,6 +232,7 @@ export default function App() {
           contractor={selectedContractor}
           onClose={() => setSelectedContractor(null)}
           showToast={showToast}
+          user={user}
         />
       )}
 

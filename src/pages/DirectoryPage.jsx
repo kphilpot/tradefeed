@@ -22,13 +22,14 @@ export default function DirectoryPage({ user, onSelectContractor, showToast }) {
     return true;
   });
 
-  const visibleContractors = dirUnlocked || user ? filtered : filtered.slice(0, FREE_VISIBLE);
+  // Featured contractors sorted first
+  const sorted = [...filtered].sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
+  const visibleContractors = dirUnlocked || user ? sorted : sorted.slice(0, FREE_VISIBLE);
   const hiddenCount = filtered.length - FREE_VISIBLE;
 
   async function handleUnlock(e) {
     e.preventDefault();
     if (!unlockEmail || !unlockName) return;
-    // Write lead to Supabase (no-op if not connected)
     await captureLead({
       email: unlockEmail,
       name: unlockName,
@@ -93,10 +94,10 @@ export default function DirectoryPage({ user, onSelectContractor, showToast }) {
 
       <div className="contractor-grid">
         {visibleContractors.map(c => (
-          <div key={c.id} className="contractor-card" onClick={() => onSelectContractor(c)}>
+          <div key={c.id} className={`contractor-card ${c.featured ? "featured" : ""}`} onClick={() => onSelectContractor(c)}>
             <div className="contractor-avatar-wrap">
               <div className="contractor-avatar" style={{ background: c.avatarColor }}>{c.avatar}</div>
-              <div>
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <div className="contractor-name">
                   {c.name}
                   <span style={{ color: "var(--verified)", fontSize: 14 }}>✓</span>
@@ -104,6 +105,7 @@ export default function DirectoryPage({ user, onSelectContractor, showToast }) {
                 </div>
                 <div className="contractor-trade">{c.trade}</div>
               </div>
+              {c.featured && <span className="featured-badge">⭐ Featured</span>}
             </div>
             <div className="contractor-location">📍 {c.location}</div>
             <div className="contractor-rating">

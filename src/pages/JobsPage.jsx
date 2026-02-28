@@ -1,10 +1,35 @@
 import { useState } from "react";
 import { DUMMY_JOBS } from "../data/index.js";
-import { captureLead } from "../lib/supabase.js";
+import { captureLead, isSupabaseConnected, supabase } from "../lib/supabase.js";
 
 export default function JobsPage({ user, openLogin, openSignup, showToast, isVerifiedUser }) {
   const [showPostJob, setShowPostJob] = useState(false);
   const [consentChecked, setConsentChecked] = useState(false);
+  const [applyingJob, setApplyingJob] = useState(null);
+  const [applyMessage, setApplyMessage] = useState("");
+  const [applied, setApplied] = useState(new Set());
+
+  async function handleApply(job) {
+    if (!user) { openLogin(); return; }
+
+    if (isSupabaseConnected) {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        await supabase.from("applications").insert({
+          job_id:          String(job.id),
+          applicant_id:    user.id,
+          applicant_email: user.email || "",
+          applicant_name:  user.name,
+          message:         applyMessage,
+        });
+      }
+    }
+
+    setApplied(prev => new Set([...prev, job.id]));
+    setApplyingJob(null);
+    setApplyMessage("");
+    showToast("Application sent! ✓");
+  }
 
   return (
     <div className="page">
@@ -87,10 +112,54 @@ export default function JobsPage({ user, openLogin, openSignup, showToast, isVer
           <div className="job-right">
             <div className="job-pay">{job.pay}</div>
             <div className="job-posted">{job.posted}</div>
-            <button className="btn-apply" onClick={!user ? openLogin : undefined}>Apply Now</button>
+            <button
+              className={`btn-apply ${applied.has(job.id) ? "applied" : ""}`}
+              disabled={applied.has(job.id)}
+              onClick={() => {
+                if (!user) { openLogin(); return; }
+                if (!applied.has(job.id)) setApplyingJob(job);
+              }}
+            >
+              {applied.has(job.id) ? "Applied ✓" : "Apply Now"}
+            </button>
           </div>
         </div>
       ))}
+
+      {/* APPLY MODAL */}
+      {applyingJob && (
+        <div className="modal-overlay" onClick={() => setApplyingJob(null)}>
+          <div className="apply-modal" onClick={e => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setApplyingJob(null)}>✕</button>
+            <h3>Apply for Position</h3>
+            <div className="apply-modal-sub">{applyingJob.title} · {applyingJob.company} · {applyingJob.location}</div>
+
+            <div className="apply-user-card">
+              <div className="apply-user-label">Applying as</div>
+              <div className="apply-user-name">{user?.name}</div>
+              <div className="apply-user-email">{user?.email}</div>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Message to Employer (Optional)</label>
+              <textarea
+                className="form-input"
+                style={{ minHeight: 90, resize: "vertical" }}
+                placeholder="Briefly introduce yourself, your experience, or ask a question..."
+                value={applyMessage}
+                onChange={e => setApplyMessage(e.target.value)}
+              />
+            </div>
+
+            <button className="btn-primary" onClick={() => handleApply(applyingJob)}>
+              Submit Application →
+            </button>
+            <div style={{ textAlign: "center", fontSize: 11, color: "#aaa", marginTop: 8 }}>
+              Your profile and contact info will be shared with this employer.
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

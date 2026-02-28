@@ -339,3 +339,89 @@ body { background: var(--light); font-family: var(--font-body); color: var(--dar
 .filter-select:focus { border-color: var(--blue); }
 .filter-input { flex: 1; min-width: 160px; padding: 9px 14px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 13px; font-family: var(--font-body); background: var(--card); color: var(--dark); outline: none; }
 .filter-input:focus { border-color: var(--blue); }
+
+/* ─── MOBILE NAV ─────────────────────────────────────────── */
+.nav-hamburger { display: none; flex-direction: column; justify-content: center; gap: 5px; cursor: pointer; background: none; border: none; padding: 6px; border-radius: 6px; }
+.nav-hamburger span { display: block; width: 20px; height: 2px; background: #aaa; border-radius: 2px; transition: background 0.15s; }
+.nav-hamburger:hover span { background: white; }
+
+@media (max-width: 768px) {
+  .nav-links { display: none !important; }
+  .nav-hamburger { display: flex; }
+  .nav-user { display: none; }
+  .nav-cta, .nav-ghost { display: none; }
+}
+
+.mobile-menu { position: fixed; inset: 0; z-index: 600; background: var(--dark); display: flex; flex-direction: column; overflow-y: auto; }
+.mobile-menu-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 2px solid var(--yellow); flex-shrink: 0; }
+.mobile-menu-logo { font-family: var(--font-display); font-weight: 800; font-size: 19px; color: var(--yellow); letter-spacing: -0.5px; }
+.mobile-menu-logo span { color: var(--white); }
+.mobile-menu-close { background: rgba(255,255,255,0.07); border: none; color: #aaa; font-size: 18px; width: 34px; height: 34px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+.mobile-menu-close:hover { background: rgba(255,255,255,0.14); color: white; }
+.mobile-menu-links { display: flex; flex-direction: column; padding: 16px 12px; gap: 2px; flex: 1; }
+.mobile-nav-link { background: none; border: none; color: #aaa; font-family: var(--font-body); font-size: 16px; font-weight: 500; text-align: left; padding: 14px 16px; border-radius: 10px; cursor: pointer; transition: all 0.15s; }
+.mobile-nav-link:hover { background: rgba(255,255,255,0.07); color: white; }
+.mobile-nav-link.active { background: rgba(255,214,0,0.1); color: var(--yellow); }
+.mobile-menu-footer { padding: 16px 20px; border-top: 1px solid #222; display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
+.mobile-menu-user { text-align: center; padding: 8px 0; font-size: 13px; color: #888; }
+
+/* ─── FEATURED BADGE ─────────────────────────────────────── */
+.featured-badge { background: var(--yellow); color: var(--dark); font-size: 10px; font-weight: 800; padding: 2px 9px; border-radius: 20px; letter-spacing: 0.3px; white-space: nowrap; }
+.contractor-card.featured { border-color: var(--yellow); border-width: 2px; }
+.contractor-card.featured:hover { box-shadow: 0 8px 32px rgba(255,214,0,0.15); }
+
+/* ─── REVIEW FORM ────────────────────────────────────────── */
+.review-section { border-top: 1px solid var(--border); padding-top: 18px; margin-top: 18px; }
+.review-section-title { font-family: var(--font-display); font-size: 13px; font-weight: 700; margin-bottom: 14px; }
+.review-form { background: #f8f7f2; border-radius: 12px; padding: 14px 16px; margin-bottom: 14px; }
+.review-form-label { font-size: 11px; font-weight: 600; color: #777; margin-bottom: 8px; display: block; letter-spacing: 0.3px; }
+.star-rating { display: flex; gap: 2px; margin-bottom: 10px; }
+.star-btn { background: none; border: none; font-size: 24px; cursor: pointer; padding: 0 3px; opacity: 0.25; transition: opacity 0.12s, transform 0.1s; line-height: 1; }
+.star-btn.active { opacity: 1; transform: scale(1.08); }
+.star-btn:hover { opacity: 0.85; }
+.review-list { display: flex; flex-direction: column; gap: 12px; }
+.review-item { padding: 12px 0; border-top: 1px solid var(--border); }
+.review-item:first-child { border-top: none; padding-top: 0; }
+.review-stars { color: #f5a623; font-size: 13px; margin-bottom: 3px; }
+.review-reviewer { font-size: 12px; font-weight: 700; color: #555; }
+.review-text { font-size: 13px; color: #333; line-height: 1.55; margin-top: 4px; }
+.review-date { font-size: 11px; color: #bbb; margin-top: 2px; }
+
+/* ─── APPLICATION MODAL ──────────────────────────────────── */
+.apply-modal { background: white; border-radius: 18px; padding: 32px; width: 100%; max-width: 460px; position: relative; max-height: 90vh; overflow-y: auto; }
+.apply-modal h3 { font-family: var(--font-display); font-size: 20px; font-weight: 800; margin-bottom: 4px; }
+.apply-modal-sub { color: #777; font-size: 13px; margin-bottom: 20px; }
+.apply-user-card { background: #f8f7f2; border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; }
+.apply-user-label { font-size: 11px; color: #999; margin-bottom: 3px; }
+.apply-user-name { font-weight: 700; font-size: 14px; }
+.apply-user-email { font-size: 13px; color: #666; }
+.apply-success { background: #E8F8F4; border-radius: 10px; padding: 16px 18px; display: flex; align-items: center; gap: 12px; font-size: 14px; color: #007a63; font-weight: 600; }
+.btn-apply.applied { background: #E8F8F4; color: #007a63; border: none; cursor: default; }
+.btn-apply.applied:hover { background: #E8F8F4; }
+
+/* ─── PRO UPGRADE (Intel page) ───────────────────────────── */
+.pro-upgrade-box { background: linear-gradient(150deg, #1a0f00 0%, #2a1800 100%); border: 2px solid var(--yellow); border-radius: 18px; padding: 44px 48px; text-align: center; max-width: 480px; box-shadow: 0 20px 80px rgba(0,0,0,0.6); backdrop-filter: blur(10px); }
+.pro-upgrade-box h2 { font-family: var(--font-display); font-size: 26px; font-weight: 800; color: white; margin-bottom: 10px; }
+.pro-upgrade-box p { font-size: 14px; color: #999; line-height: 1.6; margin-bottom: 20px; }
+.pro-price-display { margin: 16px 0 24px; }
+.pro-price { font-family: var(--font-display); font-size: 48px; font-weight: 800; color: var(--yellow); line-height: 1; }
+.pro-price-period { font-size: 15px; color: #888; font-weight: 400; }
+.pro-stripe-btn { background: var(--yellow); color: var(--dark); border: none; padding: 14px 28px; border-radius: 12px; font-weight: 800; font-size: 15px; cursor: pointer; font-family: var(--font-body); transition: all 0.18s; width: 100%; margin-bottom: 10px; }
+.pro-stripe-btn:hover { background: var(--orange); color: white; }
+.pro-stripe-btn:disabled { opacity: 0.6; cursor: wait; }
+.pro-note { font-size: 11px; color: #666; }
+
+/* ─── ADMIN APPLICATIONS ─────────────────────────────────── */
+.app-card { background: #111; border: 1px solid #2a2a2a; border-radius: 10px; padding: 14px 16px; margin-bottom: 8px; display: flex; align-items: flex-start; gap: 14px; }
+.app-card-body { flex: 1; min-width: 0; }
+.app-job-title { font-size: 14px; font-weight: 600; color: #ccc; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.app-applicant { font-size: 12px; color: #777; margin-bottom: 6px; }
+.app-message { font-size: 12px; color: #666; font-style: italic; line-height: 1.5; }
+.app-time { font-size: 11px; color: #555; white-space: nowrap; }
+
+/* ─── ADMIN NEWSLETTER COMPOSE ───────────────────────────── */
+.nl-compose { background: #111; border: 1px solid #2a2a2a; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+.nl-compose-title { font-family: var(--font-display); font-size: 12px; font-weight: 700; color: #666; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 14px; }
+.nl-send-btn { background: var(--teal); color: white; border: none; padding: 10px 24px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: var(--font-body); transition: background 0.18s; }
+.nl-send-btn:hover { background: #009980; }
+.nl-send-btn:disabled { background: #333; color: #555; cursor: default; }
