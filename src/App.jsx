@@ -1,22 +1,42 @@
-import { useState } from "react";
-import { TICKER_ITEMS } from "./data/index.js";
+import { useState, useEffect, lazy, Suspense } from "react";
+import { TICKER_ITEMS, DUMMY_VERIFIED_CONTRACTORS, DUMMY_JOBS } from "./data/index.js";
 import { useAuth } from "./hooks/useAuth.js";
 import { usePosts } from "./hooks/usePosts.js";
 import { useNotifications } from "./hooks/useNotifications.js";
 import AuthModal from "./components/AuthModal.jsx";
 import ContractorProfileModal from "./components/ContractorProfileModal.jsx";
 import NotificationBell from "./components/NotificationBell.jsx";
-import HomePage from "./pages/HomePage.jsx";
-import NewsletterPage from "./pages/NewsletterPage.jsx";
-import JobsPage from "./pages/JobsPage.jsx";
-import DirectoryPage from "./pages/DirectoryPage.jsx";
-import ForumPage from "./pages/ForumPage.jsx";
-import IntelPage from "./pages/IntelPage.jsx";
-import AdminDashboard from "./pages/AdminDashboard.jsx";
-import MessagesPage from "./pages/MessagesPage.jsx";
-import ProfilePage from "./pages/ProfilePage.jsx";
-import SettingsPage from "./pages/SettingsPage.jsx";
+import SearchModal from "./components/SearchModal.jsx";
+import OnboardingModal from "./components/OnboardingModal.jsx";
+import LandingHero from "./components/LandingHero.jsx";
+import ErrorBoundary from "./components/ErrorBoundary.jsx";
+
+// Heavy pages loaded lazily so the initial JS bundle stays small
+const AdminDashboard     = lazy(() => import("./pages/AdminDashboard.jsx"));
+const IntelPage          = lazy(() => import("./pages/IntelPage.jsx"));
+const MessagesPage       = lazy(() => import("./pages/MessagesPage.jsx"));
+
+// Regular pages (small enough to include in the main chunk)
+import HomePage          from "./pages/HomePage.jsx";
+import NewsletterPage    from "./pages/NewsletterPage.jsx";
+import JobsPage          from "./pages/JobsPage.jsx";
+import DirectoryPage     from "./pages/DirectoryPage.jsx";
+import ForumPage         from "./pages/ForumPage.jsx";
+import ProfilePage       from "./pages/ProfilePage.jsx";
+import SettingsPage      from "./pages/SettingsPage.jsx";
 import ContractorDashboard from "./pages/ContractorDashboard.jsx";
+
+// Minimal spinner shown while a lazy chunk loads
+function PageSpinner() {
+  return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "40vh" }}>
+      <div style={{ fontSize: 13, color: "#aaa" }}>Loading…</div>
+    </div>
+  );
+}
+
+// localStorage key for onboarding state
+const ONBOARDING_KEY = "tf_onboarding_done";
 
 export default function App() {
   const [page, setPage] = useState("home");
@@ -25,6 +45,8 @@ export default function App() {
   const [toast, setToast] = useState(null);
   const [selectedContractor, setSelectedContractor] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   // Deep-link: open MessagesPage with a specific conversation partner pre-selected
   const [messagingPartnerId, setMessagingPartnerId] = useState(null);
 
@@ -33,6 +55,18 @@ export default function App() {
   const { notifications, unreadCount, markRead, markAllRead } = useNotifications(user);
 
   const isProUser = user?.role === "pro" || isSuperAdmin;
+
+  // Cmd/Ctrl+K → global search
+  useEffect(() => {
+    function onKey(e) {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setShowSearch(s => !s);
+      }
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
 
   function showToast(msg) { setToast(msg); setTimeout(() => setToast(null), 3200); }
   function openLogin()  { setModalMode("login");  setShowModal(true); }
@@ -49,10 +83,19 @@ export default function App() {
     const { error, pendingVerification } = await signup({ email, password, name, role, avatarColor });
     if (error) { showToast("Signup failed: " + error.message); return; }
     setShowModal(false);
+    // Show onboarding wizard for brand-new users
+    if (!localStorage.getItem(ONBOARDING_KEY)) {
+      setShowOnboarding(true);
+    }
     showToast(pendingVerification
       ? "Application submitted! We'll verify within 24h."
       : "Welcome to TradeFeed!"
     );
+  }
+
+  function dismissOnboarding() {
+    localStorage.setItem(ONBOARDING_KEY, "1");
+    setShowOnboarding(false);
   }
 
   async function handleLogout() {
@@ -81,11 +124,9 @@ export default function App() {
   function navigateTo(p) {
     setPage(p);
     setMobileMenuOpen(false);
-    // Clear messaging partner when navigating away from messages
     if (p !== "messages") setMessagingPartnerId(null);
   }
 
-  // Open messages page with a specific partner pre-selected
   function openMessages(contractor) {
     setMessagingPartnerId(contractor?.id || null);
     setPage("messages");
@@ -95,23 +136,26 @@ export default function App() {
 
   if (page === "admin" && isSuperAdmin) {
     return (
-      <AdminDashboard
-        onBack={() => setPage("home")}
-        onLogout={handleLogout}
-        posts={posts}
-        showToast={showToast}
-      />
+      <ErrorBoundary>
+        <Suspense fallback={<PageSpinner />}>
+          <AdminDashboard
+            onBack={() => setPage("home")}
+            onLogout={handleLogout}
+            posts={posts}
+            showToast={showToast}
+          />
+        </Suspense>
+      </ErrorBoundary>
     );
   }
 
   const NAV_PAGES = ["home", "newsletter", "jobs", "directory", "forum", "intel"];
   const navLabel = (p) => p === "home" ? "Feed" : p === "intel" ? "🔒 Intel" : p.charAt(0).toUpperCase() + p.slice(1);
 
-  // Unread messages count (notifications of type "message")
   const unreadMessages = notifications.filter((n) => n.type === "message" && !n.read).length;
 
   return (
-    <>
+    <ErrorBoundary>
       {/* LIVE TICKER */}
       <div className="ticker-wrap">
         <div className="ticker-label">LIVE</div>
@@ -159,9 +203,18 @@ export default function App() {
         </div>
 
         <div className="nav-right">
+          {/* Global search trigger */}
+          <button
+            className="nav-search-btn"
+            onClick={() => setShowSearch(true)}
+            title="Search (Ctrl+K)"
+            aria-label="Search"
+          >
+            🔍
+          </button>
+
           {user ? (
             <>
-              {/* Notification bell */}
               <NotificationBell
                 notifications={notifications}
                 unreadCount={unreadCount}
@@ -169,7 +222,6 @@ export default function App() {
                 markAllRead={markAllRead}
                 onNavigate={navigateTo}
               />
-              {/* Username → profile page */}
               <button
                 className="nav-user"
                 style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "var(--font-body)" }}
@@ -237,6 +289,12 @@ export default function App() {
                 My Profile
               </button>
             )}
+            <button
+              className="mobile-nav-link"
+              onClick={() => { setShowSearch(true); setMobileMenuOpen(false); }}
+            >
+              🔍 Search
+            </button>
             {isSuperAdmin && (
               <button
                 className="mobile-nav-link"
@@ -277,56 +335,81 @@ export default function App() {
 
       {/* PAGE CONTENT */}
       <div className="page-enter" key={page}>
-        {page === "home" && (
-          <HomePage
-            user={user} posts={posts}
-            openLogin={openLogin} openSignup={openSignup}
-            onLike={handleLike} onRepost={handleRepost} onPost={handlePost}
-            isVerifiedUser={isVerifiedUser}
-          />
+        {page === "home" && !user && (
+          <LandingHero openSignup={openSignup} openLogin={openLogin} />
         )}
-        {page === "newsletter" && <NewsletterPage showToast={showToast} />}
+        {page === "home" && (
+          <ErrorBoundary>
+            <HomePage
+              user={user} posts={posts}
+              openLogin={openLogin} openSignup={openSignup}
+              onLike={handleLike} onRepost={handleRepost} onPost={handlePost}
+              isVerifiedUser={isVerifiedUser}
+            />
+          </ErrorBoundary>
+        )}
+        {page === "newsletter" && <ErrorBoundary><NewsletterPage showToast={showToast} /></ErrorBoundary>}
         {page === "jobs" && (
-          <JobsPage user={user} openLogin={openLogin} openSignup={openSignup} showToast={showToast} isVerifiedUser={isVerifiedUser} />
+          <ErrorBoundary>
+            <JobsPage user={user} openLogin={openLogin} openSignup={openSignup} showToast={showToast} isVerifiedUser={isVerifiedUser} />
+          </ErrorBoundary>
         )}
         {page === "directory" && (
-          <DirectoryPage user={user} onSelectContractor={setSelectedContractor} showToast={showToast} />
+          <ErrorBoundary>
+            <DirectoryPage user={user} onSelectContractor={setSelectedContractor} showToast={showToast} />
+          </ErrorBoundary>
         )}
         {page === "forum" && (
-          <ForumPage user={user} isVerifiedUser={isVerifiedUser} openSignup={openSignup} showToast={showToast} posts={posts} onLike={handleLike} />
+          <ErrorBoundary>
+            <ForumPage user={user} isVerifiedUser={isVerifiedUser} openSignup={openSignup} showToast={showToast} posts={posts} onLike={handleLike} />
+          </ErrorBoundary>
         )}
         {page === "intel" && (
-          <IntelPage isVerifiedUser={isVerifiedUser} isProUser={isProUser} openSignup={openSignup} showToast={showToast} />
+          <ErrorBoundary>
+            <Suspense fallback={<PageSpinner />}>
+              <IntelPage isVerifiedUser={isVerifiedUser} isProUser={isProUser} openSignup={openSignup} showToast={showToast} />
+            </Suspense>
+          </ErrorBoundary>
         )}
         {page === "messages" && (
-          <MessagesPage
-            user={user}
-            initialPartnerId={messagingPartnerId}
-            showToast={showToast}
-          />
+          <ErrorBoundary>
+            <Suspense fallback={<PageSpinner />}>
+              <MessagesPage
+                user={user}
+                initialPartnerId={messagingPartnerId}
+                showToast={showToast}
+              />
+            </Suspense>
+          </ErrorBoundary>
         )}
         {page === "profile" && (
-          <ProfilePage
-            user={user}
-            posts={posts}
-            onUpdateProfile={updateProfile}
-            showToast={showToast}
-            navigateTo={navigateTo}
-          />
+          <ErrorBoundary>
+            <ProfilePage
+              user={user}
+              posts={posts}
+              onUpdateProfile={updateProfile}
+              showToast={showToast}
+              navigateTo={navigateTo}
+            />
+          </ErrorBoundary>
         )}
         {page === "settings" && (
-          <SettingsPage
-            user={user}
-            showToast={showToast}
-            navigateTo={navigateTo}
-          />
+          <ErrorBoundary>
+            <SettingsPage
+              user={user}
+              showToast={showToast}
+              navigateTo={navigateTo}
+            />
+          </ErrorBoundary>
         )}
         {page === "dashboard" && (isVerifiedUser || isSuperAdmin) && (
-          <ContractorDashboard
-            user={user}
-            navigateTo={navigateTo}
-            showToast={showToast}
-          />
+          <ErrorBoundary>
+            <ContractorDashboard
+              user={user}
+              navigateTo={navigateTo}
+              showToast={showToast}
+            />
+          </ErrorBoundary>
         )}
       </div>
 
@@ -347,8 +430,24 @@ export default function App() {
           onMessage={openMessages}
         />
       )}
+      {showSearch && (
+        <SearchModal
+          onClose={() => setShowSearch(false)}
+          posts={posts}
+          contractors={DUMMY_VERIFIED_CONTRACTORS}
+          jobs={DUMMY_JOBS}
+          navigateTo={navigateTo}
+          onSelectContractor={setSelectedContractor}
+        />
+      )}
+      {showOnboarding && (
+        <OnboardingModal
+          onClose={dismissOnboarding}
+          onGoToProfile={() => { dismissOnboarding(); navigateTo("profile"); }}
+        />
+      )}
 
       {toast && <div className="toast">{toast}</div>}
-    </>
+    </ErrorBoundary>
   );
 }

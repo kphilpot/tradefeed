@@ -554,3 +554,75 @@ body { background: var(--light); font-family: var(--font-body); color: var(--dar
 .dashboard-card { background: white; border: 1.5px solid #eee; border-radius: 14px; padding: 18px 20px; }
 .dashboard-card-title { font-family: var(--font-display); font-size: 14px; font-weight: 800; color: #111; margin-bottom: 4px; padding-bottom: 10px; border-bottom: 1.5px solid #f0efe9; }
 .dashboard-boost { background: white; border: 2px solid #FFD600; border-radius: 14px; padding: 18px 20px; display: flex; align-items: center; gap: 18px; margin-bottom: 20px; flex-wrap: wrap; }
+
+/* ═══════════════════════════════════════════════════════════════
+   PHASE 5 — Search, Onboarding, Landing Hero
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ─── NAV SEARCH BUTTON ──────────────────────────────────── */
+.nav-search-btn { background: none; border: none; font-size: 18px; cursor: pointer; padding: 4px 6px; color: #ccc; line-height: 1; border-radius: 6px; transition: color 0.15s, background 0.15s; }
+.nav-search-btn:hover { color: white; background: rgba(255,255,255,0.08); }
+
+/* ─── GLOBAL SEARCH MODAL ────────────────────────────────── */
+.search-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 500; display: flex; align-items: flex-start; justify-content: center; padding-top: 80px; }
+.search-modal { background: white; border-radius: 16px; width: 100%; max-width: 560px; overflow: hidden; box-shadow: 0 24px 80px rgba(0,0,0,0.25); }
+.search-modal-input-row { display: flex; align-items: center; gap: 10px; padding: 16px 18px; border-bottom: 1.5px solid #f0efe9; }
+.search-modal-icon { font-size: 18px; flex-shrink: 0; color: #bbb; }
+.search-modal-input { flex: 1; border: none; outline: none; font-size: 16px; font-family: var(--font-body); color: #111; background: transparent; }
+.search-modal-input::placeholder { color: #ccc; }
+.search-modal-esc { background: #f0efe9; border: none; border-radius: 6px; padding: 3px 8px; font-size: 11px; font-weight: 700; color: #888; cursor: pointer; flex-shrink: 0; font-family: var(--font-body); }
+.search-results { max-height: 400px; overflow-y: auto; }
+.search-result-item { width: 100%; background: none; border: none; border-bottom: 1px solid #f8f7f2; padding: 12px 18px; cursor: pointer; display: flex; align-items: center; gap: 12px; text-align: left; transition: background 0.15s; }
+.search-result-item:last-child { border-bottom: none; }
+.search-result-item:hover { background: #fafaf7; }
+.search-result-icon { font-size: 18px; flex-shrink: 0; width: 32px; height: 32px; background: #f5f4ef; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+.search-result-body { flex: 1; min-width: 0; }
+.search-result-title { display: block; font-size: 13px; font-weight: 700; color: #111; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.search-result-sub { display: block; font-size: 12px; color: #888; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.search-result-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; }
+.search-result-type { background: #f0efe9; color: #888; border-radius: 20px; padding: 2px 8px; font-size: 10px; font-weight: 700; }
+.search-empty { padding: 28px 18px; text-align: center; color: #aaa; font-size: 13px; }
+.search-hint { padding: 20px 18px; text-align: center; color: #ccc; font-size: 12px; }
+
+/* ─── ONBOARDING MODAL ───────────────────────────────────── */
+.onboarding-modal { background: white; border-radius: 20px; width: 100%; max-width: 420px; padding: 32px 32px 28px; text-align: center; position: relative; box-shadow: 0 24px 80px rgba(0,0,0,0.22); overflow: hidden; }
+.onboarding-progress-bg { position: absolute; top: 0; left: 0; right: 0; height: 4px; background: #f0efe9; }
+.onboarding-progress-bar { height: 100%; background: var(--yellow); transition: width 0.3s ease; }
+.onboarding-skip { position: absolute; top: 12px; right: 14px; background: none; border: none; font-size: 12px; color: #ccc; cursor: pointer; font-family: var(--font-body); font-weight: 600; }
+.onboarding-skip:hover { color: #999; }
+.onboarding-icon { font-size: 52px; margin: 16px 0 14px; }
+.onboarding-title { font-family: var(--font-display); font-size: 22px; font-weight: 800; color: #111; margin-bottom: 12px; }
+.onboarding-body { font-size: 14px; color: #666; line-height: 1.6; margin-bottom: 24px; }
+.onboarding-dots { display: flex; justify-content: center; gap: 6px; margin-bottom: 20px; }
+.onboarding-dot { width: 7px; height: 7px; border-radius: 50%; background: #ddd; border: none; cursor: pointer; padding: 0; transition: background 0.2s, transform 0.2s; }
+.onboarding-dot.active { background: #FFD600; transform: scale(1.3); }
+
+/* ─── LANDING HERO ───────────────────────────────────────── */
+.landing-hero { background: linear-gradient(170deg, #faf9f4 0%, #ffffff 100%); border-bottom: 1.5px solid #f0efe9; padding: 0 0 48px; }
+.landing-hero-inner { max-width: 680px; margin: 0 auto; padding: 56px 24px 0; text-align: center; }
+.landing-hero-eyebrow { display: inline-block; background: #fff8e1; color: #b8860b; border-radius: 20px; padding: 5px 14px; font-size: 12px; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 20px; }
+.landing-hero-h1 { font-family: var(--font-display); font-size: clamp(32px, 6vw, 52px); font-weight: 900; color: #111; line-height: 1.1; margin-bottom: 18px; }
+.landing-hero-h1 span { color: var(--yellow); }
+.landing-hero-sub { font-size: 16px; color: #666; line-height: 1.65; max-width: 520px; margin: 0 auto 28px; }
+.landing-hero-ctas { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 14px; }
+.landing-hero-cta-primary { width: auto; padding: 13px 28px; font-size: 15px; }
+.landing-hero-cta-ghost { padding: 13px 24px; font-size: 15px; border-radius: 10px; }
+.landing-hero-note { font-size: 12px; color: #bbb; margin-bottom: 0; }
+
+.landing-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; max-width: 720px; margin: 40px auto 0; border: 1.5px solid #eee; border-radius: 16px; overflow: hidden; background: white; }
+@media (max-width: 560px) { .landing-stats { grid-template-columns: repeat(2, 1fr); } }
+.landing-stat { padding: 20px 16px; text-align: center; border-right: 1px solid #f0efe9; }
+.landing-stat:last-child { border-right: none; }
+@media (max-width: 560px) { .landing-stat:nth-child(2) { border-right: none; } }
+.landing-stat-val { font-family: var(--font-display); font-size: 24px; font-weight: 900; color: #111; margin-bottom: 4px; }
+.landing-stat-label { font-size: 11px; color: #aaa; font-weight: 600; }
+
+.landing-perks { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; max-width: 900px; margin: 40px auto 0; padding: 0 20px; }
+@media (max-width: 700px) { .landing-perks { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 420px) { .landing-perks { grid-template-columns: 1fr; } }
+.landing-perk { background: white; border: 1.5px solid #eee; border-radius: 14px; padding: 20px 18px; }
+.landing-perk-icon { font-size: 28px; margin-bottom: 10px; }
+.landing-perk-title { font-family: var(--font-display); font-size: 14px; font-weight: 800; color: #111; margin-bottom: 6px; }
+.landing-perk-body { font-size: 12px; color: #777; line-height: 1.5; }
+
+.landing-bottom-cta { max-width: 480px; margin: 40px auto 0; padding: 32px 24px; background: #f8f7f2; border-radius: 18px; text-align: center; }

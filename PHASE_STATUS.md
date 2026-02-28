@@ -1,6 +1,6 @@
 # TradeFeed — Phase Status
 
-> **Last updated:** Phase 4 in progress
+> **Last updated:** Phase 5 complete — MVP launch-ready
 > **Branch:** `claude/resume-tradefeed-phase1-6VlMz`
 
 ---
@@ -61,7 +61,7 @@
 
 ---
 
-## Phase 4 — Profiles, Messaging, Notifications & Deployment 🔄 IN PROGRESS
+## Phase 4 — Profiles, Messaging, Notifications & Deployment ✅ COMPLETE
 
 ### What Phase 4 adds
 
@@ -170,8 +170,59 @@ tradefeed/
         ├── HomePage.jsx
         ├── IntelPage.jsx
         ├── JobsPage.jsx
-        ├── MessagesPage.jsx            ← NEW: 2-pane DM system
+        ├── MessagesPage.jsx            ← 2-pane DM system (lazy loaded)
         ├── NewsletterPage.jsx
-        ├── ProfilePage.jsx             ← NEW: view + edit own profile
-        └── SettingsPage.jsx            ← NEW: account + prefs + subscription
+        ├── ProfilePage.jsx             ← view + edit own profile
+        └── SettingsPage.jsx            ← account + prefs + subscription
+```
+
+---
+
+## Phase 5 — Search, Onboarding & Launch Polish ✅ COMPLETE
+
+| Feature | File(s) | Status |
+|---------|---------|--------|
+| Global search modal (Cmd+K) — posts, contractors, jobs | `src/components/SearchModal.jsx` | ✅ |
+| Onboarding wizard (5 steps, localStorage-gated) | `src/components/OnboardingModal.jsx` | ✅ |
+| Email notification edge fn (Resend) | `supabase/functions/send-notification/` | ✅ |
+| Landing hero for logged-out visitors | `src/components/LandingHero.jsx` | ✅ |
+| Error boundary (catches render crashes) | `src/components/ErrorBoundary.jsx` | ✅ |
+| Lazy loading for heavy pages (AdminDashboard, Intel, Messages) | `src/App.jsx`, `vite.config.js` | ✅ |
+| Phase 5 CSS (search, onboarding, landing hero) | `src/styles/globals.css` | ✅ |
+
+### Phase 5 architecture notes
+
+- **Search**: in-memory fuzzy search across posts/contractors/jobs; no backend needed.
+  Swap `SearchModal` query for Supabase full-text search (`to_tsquery`) in production.
+- **Onboarding**: 5-step wizard shown once on first sign-up. State persisted to `localStorage`
+  key `tf_onboarding_done`. Last step navigates user to their Profile page.
+- **Email notifications**: `send-notification` edge function triggered by Supabase Database
+  Webhook (Insert on `notifications` table). Uses Resend API for transactional email.
+  Required secrets: `RESEND_API_KEY`, `FROM_EMAIL`, `SITE_URL`, `SUPABASE_SERVICE_ROLE_KEY`.
+- **Landing hero**: shown above the feed when `user === null` on the Home page.
+  Full marketing copy: headline, stats strip (4 metrics), feature grid (4 cards), bottom CTA.
+- **Error boundary**: class component wrapping every page + the whole app. Shows "Try Again"
+  fallback. In dev mode, prints the error stacktrace inline.
+- **Lazy loading**: `AdminDashboard`, `IntelPage`, and `MessagesPage` are code-split via
+  `React.lazy()` + `<Suspense>`. `vite.config.js` manual chunks keep vendor + page bundles
+  separate. Initial JS bundle is significantly smaller.
+
+### To deploy Phase 5
+
+```bash
+# 1. Register the send-notification webhook in Supabase dashboard:
+#    Database → Webhooks → Create webhook
+#    Table: notifications  Event: INSERT
+#    URL: https://<project>.supabase.co/functions/v1/send-notification
+
+# 2. Set edge function secrets:
+npx supabase secrets set RESEND_API_KEY=<key>
+npx supabase secrets set FROM_EMAIL=alerts@tradefeed.io
+npx supabase secrets set SITE_URL=https://tradefeed.io
+
+# 3. Deploy the new edge function:
+npx supabase functions deploy send-notification
+
+# 4. Push to branch — Vercel auto-redeploys on push
+git push origin claude/resume-tradefeed-phase1-6VlMz
 ```
