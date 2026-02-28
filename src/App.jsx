@@ -2,8 +2,10 @@ import { useState } from "react";
 import { TICKER_ITEMS } from "./data/index.js";
 import { useAuth } from "./hooks/useAuth.js";
 import { usePosts } from "./hooks/usePosts.js";
+import { useNotifications } from "./hooks/useNotifications.js";
 import AuthModal from "./components/AuthModal.jsx";
 import ContractorProfileModal from "./components/ContractorProfileModal.jsx";
+import NotificationBell from "./components/NotificationBell.jsx";
 import HomePage from "./pages/HomePage.jsx";
 import NewsletterPage from "./pages/NewsletterPage.jsx";
 import JobsPage from "./pages/JobsPage.jsx";
@@ -11,6 +13,10 @@ import DirectoryPage from "./pages/DirectoryPage.jsx";
 import ForumPage from "./pages/ForumPage.jsx";
 import IntelPage from "./pages/IntelPage.jsx";
 import AdminDashboard from "./pages/AdminDashboard.jsx";
+import MessagesPage from "./pages/MessagesPage.jsx";
+import ProfilePage from "./pages/ProfilePage.jsx";
+import SettingsPage from "./pages/SettingsPage.jsx";
+import ContractorDashboard from "./pages/ContractorDashboard.jsx";
 
 export default function App() {
   const [page, setPage] = useState("home");
@@ -19,11 +25,13 @@ export default function App() {
   const [toast, setToast] = useState(null);
   const [selectedContractor, setSelectedContractor] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  // Deep-link: open MessagesPage with a specific conversation partner pre-selected
+  const [messagingPartnerId, setMessagingPartnerId] = useState(null);
 
-  const { user, login, signup, logout, isVerifiedUser, isSuperAdmin } = useAuth();
+  const { user, login, signup, logout, updateProfile, isVerifiedUser, isSuperAdmin } = useAuth();
   const { posts, addPost, toggleLike, toggleRepost } = usePosts();
+  const { notifications, unreadCount, markRead, markAllRead } = useNotifications(user);
 
-  // Pro = paid subscriber OR superadmin gets full access
   const isProUser = user?.role === "pro" || isSuperAdmin;
 
   function showToast(msg) { setToast(msg); setTimeout(() => setToast(null), 3200); }
@@ -50,7 +58,7 @@ export default function App() {
   async function handleLogout() {
     await logout();
     showToast("Logged out.");
-    if (page === "admin") setPage("home");
+    if (page === "admin" || page === "dashboard") setPage("home");
   }
 
   function handlePost(content, media, pollOptions) {
@@ -73,6 +81,16 @@ export default function App() {
   function navigateTo(p) {
     setPage(p);
     setMobileMenuOpen(false);
+    // Clear messaging partner when navigating away from messages
+    if (p !== "messages") setMessagingPartnerId(null);
+  }
+
+  // Open messages page with a specific partner pre-selected
+  function openMessages(contractor) {
+    setMessagingPartnerId(contractor?.id || null);
+    setPage("messages");
+    setMobileMenuOpen(false);
+    setSelectedContractor(null);
   }
 
   if (page === "admin" && isSuperAdmin) {
@@ -88,6 +106,9 @@ export default function App() {
 
   const NAV_PAGES = ["home", "newsletter", "jobs", "directory", "forum", "intel"];
   const navLabel = (p) => p === "home" ? "Feed" : p === "intel" ? "🔒 Intel" : p.charAt(0).toUpperCase() + p.slice(1);
+
+  // Unread messages count (notifications of type "message")
+  const unreadMessages = notifications.filter((n) => n.type === "message" && !n.read).length;
 
   return (
     <>
@@ -110,6 +131,28 @@ export default function App() {
               {navLabel(p)}
             </button>
           ))}
+          {user && (
+            <button
+              className={`nav-link ${page === "messages" ? "active" : ""}`}
+              onClick={() => navigateTo("messages")}
+              style={{ position: "relative" }}
+            >
+              Messages
+              {unreadMessages > 0 && (
+                <span style={{ position: "absolute", top: -4, right: -6, background: "#e53935", color: "white", borderRadius: "50%", width: 14, height: 14, fontSize: 9, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  {unreadMessages > 9 ? "9+" : unreadMessages}
+                </span>
+              )}
+            </button>
+          )}
+          {(isVerifiedUser || isSuperAdmin) && (
+            <button
+              className={`nav-link ${page === "dashboard" ? "active" : ""}`}
+              onClick={() => navigateTo("dashboard")}
+            >
+              Dashboard
+            </button>
+          )}
           {isSuperAdmin && (
             <button className="nav-link" onClick={() => navigateTo("admin")} style={{ color: "#FFD600" }}>⚙ Admin</button>
           )}
@@ -118,12 +161,26 @@ export default function App() {
         <div className="nav-right">
           {user ? (
             <>
-              <span className="nav-user">
+              {/* Notification bell */}
+              <NotificationBell
+                notifications={notifications}
+                unreadCount={unreadCount}
+                markRead={markRead}
+                markAllRead={markAllRead}
+                onNavigate={navigateTo}
+              />
+              {/* Username → profile page */}
+              <button
+                className="nav-user"
+                style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "var(--font-body)" }}
+                onClick={() => navigateTo("profile")}
+                title="View profile"
+              >
                 {user.verified && <span style={{ color: "var(--verified)" }}>✓</span>}
                 {user.name}
                 {isSuperAdmin && <span className="admin-badge">ADMIN</span>}
                 {isProUser && !isSuperAdmin && <span className="admin-badge" style={{ background: "var(--yellow)", color: "var(--dark)" }}>PRO</span>}
-              </span>
+              </button>
               <button className="nav-ghost" onClick={handleLogout}>Log Out</button>
             </>
           ) : (
@@ -156,6 +213,30 @@ export default function App() {
                 {navLabel(p)}
               </button>
             ))}
+            {user && (
+              <button
+                className={`mobile-nav-link ${page === "messages" ? "active" : ""}`}
+                onClick={() => navigateTo("messages")}
+              >
+                Messages{unreadMessages > 0 && ` (${unreadMessages})`}
+              </button>
+            )}
+            {(isVerifiedUser || isSuperAdmin) && (
+              <button
+                className={`mobile-nav-link ${page === "dashboard" ? "active" : ""}`}
+                onClick={() => navigateTo("dashboard")}
+              >
+                Dashboard
+              </button>
+            )}
+            {user && (
+              <button
+                className={`mobile-nav-link ${page === "profile" ? "active" : ""}`}
+                onClick={() => navigateTo("profile")}
+              >
+                My Profile
+              </button>
+            )}
             {isSuperAdmin && (
               <button
                 className="mobile-nav-link"
@@ -217,6 +298,36 @@ export default function App() {
         {page === "intel" && (
           <IntelPage isVerifiedUser={isVerifiedUser} isProUser={isProUser} openSignup={openSignup} showToast={showToast} />
         )}
+        {page === "messages" && (
+          <MessagesPage
+            user={user}
+            initialPartnerId={messagingPartnerId}
+            showToast={showToast}
+          />
+        )}
+        {page === "profile" && (
+          <ProfilePage
+            user={user}
+            posts={posts}
+            onUpdateProfile={updateProfile}
+            showToast={showToast}
+            navigateTo={navigateTo}
+          />
+        )}
+        {page === "settings" && (
+          <SettingsPage
+            user={user}
+            showToast={showToast}
+            navigateTo={navigateTo}
+          />
+        )}
+        {page === "dashboard" && (isVerifiedUser || isSuperAdmin) && (
+          <ContractorDashboard
+            user={user}
+            navigateTo={navigateTo}
+            showToast={showToast}
+          />
+        )}
       </div>
 
       {/* MODALS */}
@@ -233,6 +344,7 @@ export default function App() {
           onClose={() => setSelectedContractor(null)}
           showToast={showToast}
           user={user}
+          onMessage={openMessages}
         />
       )}
 

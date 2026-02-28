@@ -1,13 +1,11 @@
 # TradeFeed — Phase Status
 
-> **Last updated:** Phase 3 in progress
+> **Last updated:** Phase 4 in progress
 > **Branch:** `claude/resume-tradefeed-phase1-6VlMz`
 
 ---
 
 ## Phase 1 — UI Foundation ✅ COMPLETE
-
-Everything listed below is built, tested (`npm run build` passes), and pushed.
 
 | Area | File(s) | Status |
 |------|---------|--------|
@@ -27,147 +25,153 @@ Everything listed below is built, tested (`npm run build` passes), and pushed.
 | Locked intel/pro page | `src/pages/IntelPage.jsx` | ✅ |
 | Admin dashboard (7 tabs) | `src/pages/AdminDashboard.jsx` | ✅ |
 | Environment config | `.env.example` | ✅ |
-| Gitignore | `.gitignore` | ✅ |
-
-**Bug fixed in Phase 1:** `.admin-publish-btn` CSS class was referenced in AdminDashboard but never defined — now present in `globals.css`.
 
 ---
 
-## Phase 2 — Supabase Backend Integration ✅ COMPLETE
+## Phase 2 — Supabase Backend ✅ COMPLETE
 
 | Area | File(s) | Status |
 |------|---------|--------|
-| Database schema (SQL) | `supabase/migrations/001_initial.sql` | ✅ |
+| DB schema | `supabase/migrations/001_initial.sql` | ✅ |
 | `useAuth` hook | `src/hooks/useAuth.js` | ✅ |
 | `usePosts` hook | `src/hooks/usePosts.js` | ✅ |
-| App.jsx — real auth wiring | `src/App.jsx` | ✅ |
-| AuthModal — real signIn/signUp | `src/components/AuthModal.jsx` | ✅ |
-| Lead capture → Supabase | `src/pages/DirectoryPage.jsx`, `JobsPage.jsx` | ✅ |
-| Newsletter subscription form | `src/components/NewsletterSignup.jsx` | ✅ |
-| Edge fn: Reddit seed (cron 6AM) | `supabase/functions/seed-questions/index.ts` | ✅ |
-| Edge fn: Ghost replies (Anthropic batch) | `supabase/functions/ghost-reply/index.ts` | ✅ |
-
-### Architecture decisions for Phase 2
-
-- **Hooks are Supabase-gated**: when `VITE_SUPABASE_URL` env var is set, hooks use real Supabase. Without it, they return mock data. Zero code changes needed to switch.
-- **Auth**: Supabase Auth with email/password. After signup, a row is inserted into `profiles` table via `on auth.users insert` trigger.
-- **Posts**: Fetched from `posts` table. Realtime subscription via `supabase.channel()` keeps the feed live.
-- **Leads**: Directory unlock and jobs consent checkbox both write to `leads` table with `consent_given = true`.
-- **Edge Functions**: Two Supabase Edge Functions, both triggered by cron + manually from Admin dashboard.
+| Real auth wiring | `src/App.jsx` | ✅ |
+| Lead capture | `DirectoryPage.jsx`, `JobsPage.jsx` | ✅ |
+| Newsletter signup | `src/components/NewsletterSignup.jsx` | ✅ |
+| Edge fn: Reddit seed (6AM cron) | `supabase/functions/seed-questions/` | ✅ |
+| Edge fn: Ghost replies (Anthropic batch) | `supabase/functions/ghost-reply/` | ✅ |
 
 ---
 
-## Phase 3 — Revenue & Growth 🔄 IN PROGRESS
+## Phase 3 — Revenue & Growth ✅ COMPLETE
+
+| Area | File(s) | Status |
+|------|---------|--------|
+| DB: applications, reviews, stripe fields | `supabase/migrations/002_phase3.sql` | ✅ |
+| Stripe Checkout edge fn | `supabase/functions/stripe-checkout/` | ✅ |
+| Stripe Webhook edge fn | `supabase/functions/stripe-webhook/` | ✅ |
+| Newsletter send (Resend API) | `supabase/functions/send-newsletter/` | ✅ |
+| Mobile hamburger nav | `src/App.jsx`, `globals.css` | ✅ |
+| SEO / Open Graph | `index.html` | ✅ |
+| Pro Intel dual-gate | `src/pages/IntelPage.jsx` | ✅ |
+| Job application tracking | `src/pages/JobsPage.jsx` | ✅ |
+| Contractor review form | `src/components/ContractorProfileModal.jsx` | ✅ |
+| Featured directory sort + badge | `src/pages/DirectoryPage.jsx` | ✅ |
+| Admin: applications + newsletter + featured | `src/pages/AdminDashboard.jsx` | ✅ |
+
+---
+
+## Phase 4 — Profiles, Messaging, Notifications & Deployment 🔄 IN PROGRESS
+
+### What Phase 4 adds
 
 | Feature | File(s) | Status |
 |---------|---------|--------|
-| DB migration: applications, reviews, Stripe fields | `supabase/migrations/002_phase3.sql` | ✅ |
-| Stripe Checkout edge function | `supabase/functions/stripe-checkout/index.ts` | ✅ |
-| Stripe Webhook edge function | `supabase/functions/stripe-webhook/index.ts` | ✅ |
-| Newsletter email delivery (Resend API) | `supabase/functions/send-newsletter/index.ts` | ✅ |
-| Mobile responsive nav (hamburger + slide menu) | `src/App.jsx`, `src/styles/globals.css` | ✅ |
-| SEO / Open Graph meta tags | `index.html` | ✅ |
-| Pro Intel gate — Stripe upgrade CTA | `src/pages/IntelPage.jsx` | ✅ |
-| Job application tracking (Apply modal) | `src/pages/JobsPage.jsx` | ✅ |
-| Contractor review form + display | `src/components/ContractorProfileModal.jsx` | ✅ |
-| Featured directory listings (sort + badge) | `src/pages/DirectoryPage.jsx` | ✅ |
-| Admin: applications tab | `src/pages/AdminDashboard.jsx` | ✅ |
-| Admin: newsletter send button | `src/pages/AdminDashboard.jsx` | ✅ |
-| Admin: featured toggle | `src/pages/AdminDashboard.jsx` | ✅ |
-| Env vars: Stripe + Resend | `.env.example` | ✅ |
+| DB: messages, notifications, profile_views | `supabase/migrations/003_phase4.sql` | ✅ |
+| `updateProfile` in useAuth | `src/hooks/useAuth.js` | ✅ |
+| Message + notification helpers | `src/lib/supabase.js` | ✅ |
+| `useNotifications` hook | `src/hooks/useNotifications.js` | ✅ |
+| Notification bell (nav) | `src/components/NotificationBell.jsx` | ✅ |
+| Messages page (2-pane DM) | `src/pages/MessagesPage.jsx` | ✅ |
+| Profile page (view/edit profile) | `src/pages/ProfilePage.jsx` | ✅ |
+| Settings page (account, notif prefs, sub) | `src/pages/SettingsPage.jsx` | ✅ |
+| Contractor dashboard | `src/pages/ContractorDashboard.jsx` | ✅ |
+| Phase 4 CSS | `src/styles/globals.css` | ✅ |
+| App wiring: pages + bell + profile nav | `src/App.jsx` | ✅ |
+| ContractorProfileModal: Send Message works | `src/components/ContractorProfileModal.jsx` | ✅ |
+| Vercel SPA routing config | `vercel.json` | ✅ |
+| PWA manifest | `public/manifest.json` | ✅ |
+| PWA meta tags | `index.html` | ✅ |
 
-### Phase 3 architecture notes
+### Phase 4 architecture notes
 
-- **Pro tier**: `profiles.role = 'pro'` — set via Stripe webhook after successful payment.
-  Stripe Checkout session is created by `supabase/functions/stripe-checkout` (requires user auth JWT).
-  Webhook validates signature with HMAC-SHA256 and calls `handle_stripe_payment()` SQL function.
-- **Dual Intel gate**: Unverified users → apply for verification. Verified but not pro → Stripe upgrade CTA.
-  Pro / superadmin → full content access. No overlay.
-- **Reviews**: Written to `reviews` table. Trigger `on_review_change` recalculates `profiles.rating` on every insert/update/delete.
-- **Featured listings**: `profiles.featured = true` sorts featured contractors first in directory.
-  Admin can toggle per-contractor in Users tab. Badge shown on cards.
-- **Newsletter send**: `send-newsletter` edge function batch-sends via Resend API (100 recipients per call),
-  then logs the send in the `newsletters` table.
+- **Notifications**: real-time via `supabase.channel()` on `notifications` table. On new message insert,
+  a DB trigger (`notify_on_message`) auto-creates a notification for the recipient. In demo mode,
+  mock notifications are shown so the UI is fully functional.
+- **Messages**: 2-pane layout (conversation list + thread). Mock conversations in demo mode.
+  Supabase mode: reads/writes `messages` table, realtime subscription on INSERT.
+- **Profile page**: shows avatar, name, role tier badge, trade, location. Inline edit form.
+  Shows user's own posts and application history. Subscription status card.
+- **Contractor Dashboard**: verified users see profile views (7d), open job posts, pending applications,
+  average rating, recent reviews, and a "Boost Profile" featured listing CTA.
+- **Settings**: account edit (name, bio), change password form, notification preference toggles,
+  subscription management (upgrade/cancel), danger zone (delete account confirmation).
+- **Vercel**: `vercel.json` with `rewrites` for SPA — all routes serve `index.html`.
+- **PWA**: `public/manifest.json` + theme-color + apple-mobile-web-app meta tags.
 
-### To deploy Phase 3
+### To deploy Phase 4
 
 ```bash
-# 1. Apply DB migration
-npx supabase db push  # or paste 002_phase3.sql into SQL editor
+# 1. Apply migration
+npx supabase db push  # paste 003_phase4.sql into Supabase SQL editor
 
-# 2. Set env vars in Supabase dashboard (Settings > Edge Functions)
-STRIPE_SECRET_KEY=sk_live_...
-STRIPE_PRICE_ID=price_...
-STRIPE_WEBHOOK_SECRET=whsec_...
-RESEND_API_KEY=re_...
-FROM_EMAIL=newsletter@tradefeed.io
-SITE_URL=https://tradefeed.io
+# 2. No new edge functions in Phase 4 — existing ones cover notifications
 
-# 3. Deploy edge functions
-npx supabase functions deploy stripe-checkout
-npx supabase functions deploy stripe-webhook
-npx supabase functions deploy send-newsletter
+# 3. Deploy to Vercel (first time)
+# - Import repo at vercel.com → New Project
+# - Framework: Vite, Build: npm run build, Output: dist
+# - Add env vars: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_STRIPE_PUBLIC_KEY
+# - Every push to the branch auto-redeploys
 
-# 4. Register Stripe webhook
-# In Stripe Dashboard → Webhooks → Add endpoint:
-# URL: https://your-project.supabase.co/functions/v1/stripe-webhook
-# Events: customer.subscription.created, customer.subscription.updated, customer.subscription.deleted
-
-# 5. Add to .env (frontend)
-VITE_STRIPE_PUBLIC_KEY=pk_live_...
+# 4. After first deploy, register the Vercel URL as SITE_URL in Supabase edge fn secrets
 ```
 
 ---
 
-## File Tree (Phase 3 complete)
+## File Tree (Phase 4 complete)
 
 ```
 tradefeed/
-├── PHASE_STATUS.md            ← This file
-├── .env.example               ← Copy → .env and fill in all keys
+├── PHASE_STATUS.md
+├── vercel.json                ← SPA routing (all routes → index.html)
+├── .env.example
 ├── .gitignore
-├── index.html                 ← OG + Twitter meta tags added
+├── index.html                 ← OG + PWA meta tags
 ├── package.json
 ├── vite.config.js
+├── public/
+│   └── manifest.json          ← PWA manifest
 ├── supabase/
 │   ├── migrations/
-│   │   ├── 001_initial.sql    ← Phase 2 schema
-│   │   └── 002_phase3.sql     ← Phase 3: applications, reviews, stripe fields
+│   │   ├── 001_initial.sql
+│   │   ├── 002_phase3.sql
+│   │   └── 003_phase4.sql     ← messages, notifications, profile_views
 │   └── functions/
 │       ├── seed-questions/
-│       │   └── index.ts       ← Reddit API cron (daily at 6AM)
 │       ├── ghost-reply/
-│       │   └── index.ts       ← Anthropic batch API (daily at 7AM)
 │       ├── stripe-checkout/
-│       │   └── index.ts       ← Creates Stripe Checkout session
 │       ├── stripe-webhook/
-│       │   └── index.ts       ← Handles Stripe payment events
 │       └── send-newsletter/
-│           └── index.ts       ← Resend API batch send
 └── src/
     ├── main.jsx
-    ├── App.jsx                ← +mobile hamburger menu, +isProUser, +showToast to AdminDashboard
-    ├── data/
-    │   └── index.js
+    ├── App.jsx                ← +profile/settings/messages/dashboard pages
+    │                             +NotificationBell, +profile nav, +message routing
+    ├── data/index.js
     ├── hooks/
-    │   ├── useAuth.js
-    │   └── usePosts.js
+    │   ├── useAuth.js         ← +updateProfile()
+    │   ├── usePosts.js
+    │   └── useNotifications.js  ← NEW: real-time notification state
     ├── lib/
-    │   └── supabase.js
+    │   └── supabase.js        ← +sendMessage, +fetchNotifications helpers
     ├── styles/
-    │   └── globals.css        ← +mobile nav, +featured badge, +review form, +apply modal, +pro upgrade
+    │   └── globals.css        ← +bell, +messages, +profile, +settings, +dashboard
     ├── components/
     │   ├── AuthModal.jsx
     │   ├── ComposeBox.jsx
-    │   ├── ContractorProfileModal.jsx  ← +review form, +featured badge
+    │   ├── ContractorProfileModal.jsx  ← Send Message → openMessages(contractor)
     │   ├── NewsletterSignup.jsx
+    │   ├── NotificationBell.jsx        ← NEW
     │   └── PostCard.jsx
     └── pages/
-        ├── AdminDashboard.jsx   ← +applications tab, +newsletter send, +featured toggle
-        ├── DirectoryPage.jsx    ← +featured sort + badge
+        ├── AdminDashboard.jsx
+        ├── ContractorDashboard.jsx     ← NEW: verified user analytics
+        ├── DirectoryPage.jsx
         ├── ForumPage.jsx
         ├── HomePage.jsx
-        ├── IntelPage.jsx        ← +dual gate: verified→Pro CTA, pro→full access
-        ├── JobsPage.jsx         ← +apply modal + application tracking
-        └── NewsletterPage.jsx
+        ├── IntelPage.jsx
+        ├── JobsPage.jsx
+        ├── MessagesPage.jsx            ← NEW: 2-pane DM system
+        ├── NewsletterPage.jsx
+        ├── ProfilePage.jsx             ← NEW: view + edit own profile
+        └── SettingsPage.jsx            ← NEW: account + prefs + subscription
 ```

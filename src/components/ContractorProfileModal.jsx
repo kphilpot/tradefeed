@@ -7,7 +7,7 @@ const MOCK_REVIEWS = [
   { reviewer: "Bryan K.", rating: 5, text: "Best sub I've worked with in Charlotte. Clean job site, no punch list, crew was professional the whole way through.", date: "3 months ago" },
 ];
 
-export default function ContractorProfileModal({ contractor: c, onClose, showToast, user }) {
+export default function ContractorProfileModal({ contractor: c, onClose, showToast, user, onMessage }) {
   const [reviewRating, setReviewRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [reviewText, setReviewText] = useState("");
@@ -101,7 +101,21 @@ export default function ContractorProfileModal({ contractor: c, onClose, showToa
           </div>
 
           <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
-            <button className="btn-primary" onClick={() => { showToast("Message sent! ✓"); onClose(); }}>Send Message</button>
+            <button
+              className="btn-primary"
+              onClick={() => {
+                if (user && onMessage) {
+                  onMessage(c);
+                } else if (!user) {
+                  showToast("Log in to send messages.");
+                } else {
+                  showToast("Message sent! ✓");
+                  onClose();
+                }
+              }}
+            >
+              Send Message
+            </button>
             <button className="btn-secondary" onClick={() => { navigator.clipboard?.writeText(`${c.email} | ${c.phone}`); showToast("Contact copied!"); }}>Copy Contact</button>
           </div>
 

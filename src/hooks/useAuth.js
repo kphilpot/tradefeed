@@ -90,8 +90,26 @@ export function useAuth() {
     setSession(null);
   }, []);
 
+  // ── Update profile ───────────────────────────────────────────────
+  const updateProfile = useCallback(async (updates) => {
+    if (!user) return { error: { message: "Not logged in" } };
+    if (isSupabaseConnected) {
+      const { data, error } = await supabase
+        .from("profiles")
+        .update(updates)
+        .eq("id", user.id)
+        .select()
+        .single();
+      if (error) return { error };
+      if (data) setUser(data);
+    } else {
+      setUser((prev) => ({ ...prev, ...updates }));
+    }
+    return { error: null };
+  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const isVerifiedUser = user?.role === "verified_sub" || user?.role === "verified_gc" || user?.role === "superadmin";
   const isSuperAdmin   = user?.role === "superadmin";
 
-  return { user, session, loading, login, signup, logout, isVerifiedUser, isSuperAdmin };
+  return { user, session, loading, login, signup, logout, updateProfile, isVerifiedUser, isSuperAdmin };
 }

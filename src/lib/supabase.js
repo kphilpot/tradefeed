@@ -91,3 +91,56 @@ export async function captureLead(lead) {
   const { data } = await supabase.from('leads').insert(lead).select().single();
   return data;
 }
+
+// ─── MESSAGES HELPERS ────────────────────────────────────────────
+
+export async function fetchConversations(userId) {
+  if (!supabase) return null;
+  // Get distinct conversation partners + latest message
+  const { data } = await supabase
+    .from('messages')
+    .select('*, sender:profiles!sender_id(id, name, avatar_color), recipient:profiles!recipient_id(id, name, avatar_color)')
+    .or(`sender_id.eq.${userId},recipient_id.eq.${userId}`)
+    .order('created_at', { ascending: false });
+  return data;
+}
+
+export async function fetchThread(userId, otherUserId) {
+  if (!supabase) return null;
+  const { data } = await supabase
+    .from('messages')
+    .select('*')
+    .or(
+      `and(sender_id.eq.${userId},recipient_id.eq.${otherUserId}),` +
+      `and(sender_id.eq.${otherUserId},recipient_id.eq.${userId})`
+    )
+    .order('created_at', { ascending: true });
+  return data;
+}
+
+export async function sendMessage(senderId, recipientId, body) {
+  if (!supabase) return null;
+  const { data } = await supabase
+    .from('messages')
+    .insert({ sender_id: senderId, recipient_id: recipientId, body })
+    .select()
+    .single();
+  return data;
+}
+
+export async function markMessagesRead(userId, senderId) {
+  if (!supabase) return null;
+  await supabase
+    .from('messages')
+    .update({ read: true })
+    .eq('recipient_id', userId)
+    .eq('sender_id', senderId)
+    .eq('read', false);
+}
+
+// ─── PROFILE VIEWS ───────────────────────────────────────────────
+
+export async function recordProfileView(profileId, viewerId) {
+  if (!supabase) return null;
+  await supabase.from('profile_views').insert({ profile_id: profileId, viewer_id: viewerId });
+}
